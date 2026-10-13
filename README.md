@@ -70,6 +70,7 @@ Cardo doesn't have a vulnerability disclosure program or a security contact, so 
 
 | Date | Event |
 |---|---|
-| 2026-09-26 | First report via Cardo support portal (case CES-US317); closed as spam |
-| 2026-10-12 | Second report via Cardo support portal (case ZTK25129259); closed as spam |
+| 2026-09-26 | First report via Cardo Report Security Issue portal (case CES-US317) |
+| 2026-10-12 | Second report via Cardo support portal (case ZTK25129259) |
+| 2026-10-13 | Report ZTK25129259 closed as spam |
 | 2026-10-13 | CVE requested through MITRE CNA-LR; Cardo notified of public disclosure via support portal (case ZTK25129507); advisory published |
