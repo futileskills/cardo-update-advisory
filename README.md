@@ -1,10 +1,10 @@
 <h1 align="center">Security Advisory: Hard-coded Cloud Storage Credential in Cardo Update for Windows</h1>
 
-CVE: Requested (MITRE CNA-LR), pending assignment
+CVE: Requested (MITRE CNA-LR, 2026-10-13), pending assignment
 
 ## Summary:
 
-This document details a critical vulnerability in Cardo Update, the desktop firmware updater for Windows distributed by Cardo Systems. The shipped application contains a hard-coded credential that grants access to a cloud storage account operated by the vendor. Because the credential is embedded in the freely downloadable installer, anyone who obtains the installer can recover it and use it to read, modify, or delete data in that storage account over the internet. The specific location of the credential and the affected backend are withheld from this public document while coordinated disclosure is in progress; see section 6.
+This document details a critical vulnerability in Cardo Update, the desktop firmware updater for Windows distributed by Cardo Systems. The shipped application contains a hard-coded credential that grants access to a cloud storage account operated by the vendor. Because the credential is embedded in the freely downloadable installer, anyone who obtains the installer can recover it and use it to read, modify, or delete data in that storage account over the internet. The vendor did not respond to repeated reports, so this advisory is published without vendor coordination. The credential value, its location in the application, and the affected storage account are withheld because the credential remains live.
 
 **1. Vulnerability Details**
 
@@ -30,11 +30,31 @@ Cardo Update is an Electron desktop application that users download to update th
 
 The credential travels with every copy of the installer. The installer is distributed publicly from the vendor's website with no authentication, so recovering the credential requires only unpacking the installer and reading the application's own files. No access to the vendor's systems is needed to obtain it, and nothing prevents a copy that has already been downloaded from being read at any time.
 
-The exact file, the credential value, and the name of the storage account are intentionally omitted from this public document. Publishing them before the vendor rotates the credential would expose a live secret. Full detail has been provided to the vendor privately.
+### 3. Proof of Concept
 
-### 3. Verification
+This finding was identified through static analysis of the shipped, publicly distributed application only. The credential was not used to authenticate to the vendor's account, and no vendor data was accessed, altered, or deleted.
 
-This finding was identified through static analysis of the shipped, publicly distributed application only. The credential was not used to authenticate to the vendor's account, and no vendor data was accessed, altered, or deleted. No proof-of-concept or exploit code is published. The presence of the credential in the shipped build is sufficient to establish the finding.
+**Affected installer:**
+
+    File:     [INSTALLER FILENAME]
+    Version:  4.7.0.44542
+    SHA-256:  [INSTALLER SHA-256]
+    Source:   Publicly downloadable from the vendor's website, no authentication required
+
+**Recovered credential (redacted):**
+
+    DefaultEndpointsProtocol=https;
+    AccountName=[REDACTED];
+    AccountKey=[REDACTED, 88-character base64 account key];
+    EndpointSuffix=core.windows.net
+
+**Credential commitment:**
+
+The SHA-256 hash of the full, unredacted credential string is published below. This allows the researcher to prove possession of the exact credential at the time of publication, and allows the vendor to confirm which key was exposed, without disclosing the key itself.
+
+    SHA-256: [SHA-256 OF FULL CONNECTION STRING]
+
+The presence of a full account key in the shipped build is sufficient to establish the finding.
 
 ### 4. Impact
 
@@ -66,8 +86,15 @@ The full extent depends on what the account holds, which was not enumerated beca
 
    No action is required beyond installing a fixed version once the vendor releases one. The exposure is of vendor-side data, not data on the user's own computer.
 
-### 6. Disclosure
+### 6. Disclosure Timeline
 
-This issue was reported to Cardo Systems through their coordinated vulnerability disclosure channel on 2026-09-26, and a CVE identifier was requested from MITRE the same day. A 90-day disclosure window was proposed. The specific technical details are withheld from this document until the vendor confirms the credential has been rotated and removed from the client, or the disclosure window closes, whichever comes first. This document will be updated at that time with the full technical detail and the assigned CVE identifier.
+Cardo Systems does not publish a vulnerability disclosure program or dedicated security contact. Reports were submitted through the vendor's email support portal.
+
+   2026-09-26: Reported to Cardo Systems via email support portal (case ZTK25129259).  
+   [DATE]: Second report submitted via email support portal (case CES-US317).  
+   Both reports went unanswered and were marked as spam.  
+   2026-10-13: CVE requested through MITRE CNA-LR. Vendor notified of public disclosure. Advisory published.
+
+The CVE identifier will be listed in the CVE record once assigned.
 
 Reported by Michael Cook (https://github.com/futileskills).
