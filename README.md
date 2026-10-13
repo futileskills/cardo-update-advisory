@@ -1,100 +1,76 @@
-<h1 align="center">Security Advisory: Hard-coded Cloud Storage Credential in Cardo Update for Windows</h1>
+# Cardo Update for Windows: Hard-coded Azure Storage Account Key
 
-CVE: Requested (MITRE CNA-LR, 2026-10-13), pending assignment
+**CVE:** Requested via MITRE CNA-LR (2026-10-13), pending assignment  
+**Researcher:** Michael Cook ([@futileskills](https://github.com/futileskills))  
+**Vendor:** Cardo Systems Ltd.  
+**Product:** Cardo Update (Windows desktop firmware updater)  
+**Affected version:** 4.7.0.44542, likely earlier 4.x builds  
+**CWE:** CWE-798 (Use of Hard-coded Credentials), CWE-312 (Cleartext Storage of Sensitive Information)  
+**CVSS v3.1:** 10.0 Critical (AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H)  
+**CVSS v4.0:** 7.9 High (CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:N/SC:H/SI:H/SA:H)
 
-## Summary:
+## Summary
 
-This document details a critical vulnerability in Cardo Update, the desktop firmware updater for Windows distributed by Cardo Systems. The shipped application contains a hard-coded credential that grants access to a cloud storage account operated by the vendor. Because the credential is embedded in the freely downloadable installer, anyone who obtains the installer can recover it and use it to read, modify, or delete data in that storage account over the internet. The vendor did not respond to repeated reports, so this advisory is published without vendor coordination. The credential value, its location in the application, and the affected storage account are withheld because the credential remains live.
+Cardo Update ships with a full Azure Storage account key baked into its application code. The installer is a public download on Cardo's website with no login required, so anyone who grabs it can pull the key out and get owner-level read, write, and delete access to Cardo's storage account.
 
-**1. Vulnerability Details**
+I reported this to Cardo twice. Both reports were ignored and marked as spam, so I'm publishing without vendor coordination. The key is still live, so the key value, the storage account name, and where it sits in the app are left out of this writeup.
 
-Vulnerability Type:
+## Details
 
-   &nbsp;&nbsp;&nbsp;&nbsp;Use of Hard-coded Credentials (CWE-798)  
-   &nbsp;&nbsp;&nbsp;&nbsp;Cleartext Storage of Sensitive Information (CWE-312)  
-   &nbsp;&nbsp;&nbsp;&nbsp;Use of Hard-coded Cryptographic Key (CWE-321)  
+Cardo Update is an Electron app that riders use to update firmware on their Cardo headsets. Somewhere in the shipped app code is an Azure Storage connection string containing the account's shared key.
 
-**Vendor: Cardo Systems Ltd.**
+This isn't a scoped SAS token or anything time-limited. It's the account key itself, which means it works against every container and object in the account, not just whatever the app actually needs. Getting it out takes nothing more than unpacking the installer and reading the app's own files. No interaction with Cardo's systems is needed, and every copy of the installer that's already been downloaded has the key in it.
 
-**Affected Products:** Cardo Update, the desktop firmware updater application for Windows.
+## Proof of Concept
 
-&nbsp;&nbsp;&nbsp;&nbsp;Affected Versions: 4.7.0.44542, and likely earlier 4.x builds.
+I found this through static analysis of the public installer only. I did not use the key, did not connect to Cardo's storage account, and did not access, change, or delete any data.
 
-&nbsp;&nbsp;&nbsp;&nbsp;Attack Vector: Remote. The credential is recovered from the public installer, then used against the storage account over the network.
+**Installer examined:**
 
-&nbsp;&nbsp;&nbsp;&nbsp;Severity: CVSS v3.1 10.0 (Critical), AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H. CVSS v4.0 7.9 (High), CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:N/SC:H/SI:H/SA:H.
-
-### 2. Technical Description
-
-Cardo Update is an Electron desktop application that users download to update the firmware on their Cardo headsets. The shipped application contains a credential for a cloud storage account inside its own program code. The credential is a broadly scoped account credential, not a narrowly scoped or time-limited token, so it grants full read, write, and delete access across the entire storage account rather than access to a single resource.
-
-The credential travels with every copy of the installer. The installer is distributed publicly from the vendor's website with no authentication, so recovering the credential requires only unpacking the installer and reading the application's own files. No access to the vendor's systems is needed to obtain it, and nothing prevents a copy that has already been downloaded from being read at any time.
-
-### 3. Proof of Concept
-
-This finding was identified through static analysis of the shipped, publicly distributed application only. The credential was not used to authenticate to the vendor's account, and no vendor data was accessed, altered, or deleted.
-
-**Affected installer:**
-
-    File:     [INSTALLER FILENAME]
     Version:  4.7.0.44542
-    SHA-256:  [INSTALLER SHA-256]
-    Source:   Publicly downloadable from the vendor's website, no authentication required
+    SHA-256:  df46c09d67161adf43dd5c11b123a6340df31ebbd42f14cc9db4d75ec0effb7e
+    Source:   Public download from cardosystems.com, no authentication
 
-**Recovered credential (redacted):**
+**What's in the build (redacted):**
 
     DefaultEndpointsProtocol=https;
     AccountName=[REDACTED];
-    AccountKey=[REDACTED, 88-character base64 account key];
+    AccountKey=[REDACTED];
     EndpointSuffix=core.windows.net
 
-**Credential commitment:**
+**Hash of the full unredacted connection string:**
 
-The SHA-256 hash of the full, unredacted credential string is published below. This allows the researcher to prove possession of the exact credential at the time of publication, and allows the vendor to confirm which key was exposed, without disclosing the key itself.
+    SHA-256: [PASTE CONNECTION-STRING SHA-256 HERE - see command below]
 
-    SHA-256: [SHA-256 OF FULL CONNECTION STRING]
+That hash lets Cardo confirm exactly which key was exposed, and lets me prove I had it as of this date, without putting the key itself out there.
 
-The presence of a full account key in the shipped build is sufficient to establish the finding.
+## Impact
 
-### 4. Impact
+Anyone holding the key effectively owns the storage account:
 
-Because the exposed credential is a full account credential, anyone who recovers it can act against the vendor's storage account with the same authority as the account owner:
+- **Read:** download everything in it, including any diagnostic data the app uploads from users.
+- **Write:** upload or overwrite files. If the account serves anything back to the app or to users, that content can be swapped out for something malicious under a Cardo-trusted domain.
+- **Delete:** wipe objects or whole containers and break whatever depends on them.
 
-   Confidentiality: read and download everything stored in the account, including any diagnostic data uploaded by users.
+I didn't enumerate the account's contents, because that would mean using the key. Worst case, if the account serves content to clients, this is a supply-chain problem, not just a data exposure.
 
-   Integrity: add or overwrite stored objects. Content that is served from the account to users can be replaced, and attacker-controlled files can be staged under a vendor-trusted domain.
+## Recommendations for Cardo
 
-   Availability: delete objects or entire containers, disrupting the service that depends on the account.
+1. Rotate the account key now and treat the account as compromised until you do. Rotating kills the copy that's already out in the wild.
+2. Pull storage credentials out of the client entirely. Account keys should never ship in an installer.
+3. Have the client request short-lived, scoped SAS tokens from an authenticated backend, or route uploads through a server-side API.
+4. Check storage access logs for requests using this key that didn't come from your own infrastructure.
+5. Review what was stored in the account and handle any exposed user data per your breach notification obligations.
 
-The full extent depends on what the account holds, which was not enumerated because doing so would require using the credential. At minimum the exposure covers the data the application uploads. At worst, if the account also serves content consumed by clients, it becomes a supply-chain foothold.
+Users don't need to do anything beyond updating once a fixed version is released. The exposure is on Cardo's side, not on users' machines.
 
-### 5. Suggested Mitigation
+## Disclosure Timeline
 
-**Vendor-side:**
+Cardo doesn't have a vulnerability disclosure program or a security contact, so I used their email support portal.
 
-   Rotate the exposed account credential immediately. Treat the account as compromised until this is done. Rotation invalidates the credential that has already been distributed.
-
-   Remove the credential from the client. Storage-account credentials should never ship in client-side code or installers.
-
-   Re-architect the upload path so the client holds no storage credentials. An authenticated backend should issue short-lived, least-privilege, scoped tokens, or accept uploads through a server-side API.
-
-   Audit the storage account's access logs for use of the credential that did not originate from vendor infrastructure during the exposure window.
-
-   Review the data held in the account for anything that may have been exposed, and handle it per the applicable breach and privacy obligations.
-
-**User-side:**
-
-   No action is required beyond installing a fixed version once the vendor releases one. The exposure is of vendor-side data, not data on the user's own computer.
-
-### 6. Disclosure Timeline
-
-Cardo Systems does not publish a vulnerability disclosure program or dedicated security contact. Reports were submitted through the vendor's email support portal.
-
-   2026-09-26: Reported to Cardo Systems via email support portal (case ZTK25129259).  
-   [DATE]: Second report submitted via email support portal (case CES-US317).  
-   Both reports went unanswered and were marked as spam.  
-   2026-10-13: CVE requested through MITRE CNA-LR. Vendor notified of public disclosure. Advisory published.
-
-The CVE identifier will be listed in the CVE record once assigned.
-
-Reported by Michael Cook (https://github.com/futileskills).
+| Date | Event |
+|---|---|
+| 2026-09-26 | Reported via Cardo support portal (case ZTK25129259) |
+| [SECOND REPORT DATE] | Second report via support portal (case CES-US317) |
+| | Both reports ignored and marked as spam |
+| 2026-10-13 | CVE requested through MITRE CNA-LR, Cardo notified of public disclosure, advisory published |
