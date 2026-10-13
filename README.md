@@ -40,7 +40,7 @@ I found this through static analysis of the public installer only. I did not use
 
 **Hash of the full unredacted connection string:**
 
-    SHA-256: [PASTE CONNECTION-STRING SHA-256 HERE - see command below]
+        SHA-256: 1557bd4ad5e9a1d5521892f7391cc67659c37aa1284b7566be33a17fc3e0da07
 
 That hash lets Cardo confirm exactly which key was exposed, and lets me prove I had it as of this date, without putting the key itself out there.
 
@@ -70,7 +70,6 @@ Cardo doesn't have a vulnerability disclosure program or a security contact, so 
 
 | Date | Event |
 |---|---|
-| 2026-09-26 | Reported via Cardo support portal (case ZTK25129259) |
-| [SECOND REPORT DATE] | Second report via support portal (case CES-US317) |
-| | Both reports ignored and marked as spam |
-| 2026-10-13 | CVE requested through MITRE CNA-LR, Cardo notified of public disclosure, advisory published |
+| 2026-09-26 | First report via Cardo support portal (case CES-US317); closed as spam |
+| 2026-10-12 | Second report via Cardo support portal (case ZTK25129259); closed as spam |
+| 2026-10-13 | CVE requested through MITRE CNA-LR; Cardo notified of public disclosure via support portal (case ZTK25129507); advisory published |
