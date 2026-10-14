@@ -1,6 +1,6 @@
 # Cardo Update for Windows: Hard-coded Azure Storage Account Key
 
-**CVE:** Requested via MITRE CNA-LR (2026-10-13), pending assignment  
+**CVE:** Requested via MITRE CNA-LR (2026-09-26), pending assignment  
 **Researcher:** Michael Cook ([@futileskills](https://github.com/futileskills))  
 **Vendor:** Cardo Systems Ltd.  
 **Product:** Cardo Update (Windows desktop firmware updater)  
